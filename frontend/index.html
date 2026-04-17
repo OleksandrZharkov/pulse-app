@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pulse Calculator</title>
+    <style>
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); height: 100vh; font-family: sans-serif; display: flex; justify-content: center; align-items: center; color: white; }
+        .card { background: rgba(255,255,255,0.1); padding: 2rem; border-radius: 15px; backdrop-filter: blur(10px); }
+        input { padding: 10px; margin: 10px 0; border-radius: 5px; border: none; }
+        button { padding: 10px 20px; background: #ff4757; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>Рассчитать макс. пульс</h2>
+        <input type="number" id="age" placeholder="Введите возраст">
+        <button onclick="calc()">Рассчитать</button>
+        <p id="result"></p>
+    </div>
+    <script>
+        async function calc() {
+            const age = document.getElementById('age').value;
+            const res = await fetch(`http://localhost:8000/calculate?age=${age}`);
+            const data = await res.json();
+            document.getElementById('result').innerText = "Ваш макс. пульс: " + data.max_pulse;
+        }
+    </script>
+</body>
+</html>

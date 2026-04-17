@@ -1,0 +1,7 @@
+replicaCount: 1
+backend:
+  image: pulse-backend
+  port: 8000
+frontend:
+  image: pulse-frontend
+  port: 80
