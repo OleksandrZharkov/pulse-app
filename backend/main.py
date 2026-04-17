@@ -1,17 +1,53 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+import psycopg2
+import os
+import time
 
 app = FastAPI()
 
-# РАЗРЕШАЕМ CORS (чтобы фронтенд мог достучаться до API)
+# Настройка CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # В продакшене тут должен быть конкретный домен
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+def get_db_connection():
+    """Функция подключения к БД с механизмом retry"""
+    attempts = 0
+    while attempts < 10:
+        try:
+            conn = psycopg2.connect(
+                host=os.getenv("DB_HOST", "localhost"),
+                database=os.getenv("DB_NAME", "postgres"),
+                user=os.getenv("DB_USER", "postgres"),
+                password=os.getenv("DB_PASSWORD", "password")
+            )
+            return conn
+        except Exception as e:
+            attempts += 1
+            print(f"Попытка {attempts}: Ожидание БД... {e}")
+            time.sleep(3)
+    raise Exception("Не удалось подключиться к базе данных")
+
+# Инициализация таблицы при старте
+conn = get_db_connection()
+cur = conn.cursor()
+cur.execute("""
+    CREATE TABLE IF NOT EXISTS pulse_history (
+        id SERIAL PRIMARY KEY, 
+        age INT, 
+        max_pulse FLOAT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+""")
+conn.commit()
+cur.close()
+conn.close()
 
 class UserData(BaseModel):
     age: int
@@ -24,4 +60,13 @@ def calculate(age: int):
 
 @app.post("/save")
 def save(data: UserData):
-    return {"status": "saved", "data": data}
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "INSERT INTO pulse_history (age, max_pulse) VALUES (%s, %s)", 
+        (data.age, data.max_pulse)
+    )
+    conn.commit()
+    cur.close()
+    conn.close()
+    return {"status": "saved"}
