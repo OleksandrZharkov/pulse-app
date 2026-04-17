@@ -1,7 +1,7 @@
 replicaCount: 1
 backend:
-  image: pulse-backend
+  image: ozharkov/pulse-backend  # Замени на свой логин!
   port: 8000
 frontend:
-  image: pulse-frontend
+  image: ozharkov/pulse-frontend  # Замени на свой логин!
   port: 80
