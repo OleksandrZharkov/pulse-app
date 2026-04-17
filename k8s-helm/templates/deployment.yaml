@@ -37,6 +37,8 @@ apiVersion: v1
 kind: Service
 metadata:
   name: pulse-app-service
+  labels:           
+    app: pulse-app  
 spec:
   ports:
   - name: http-frontend
