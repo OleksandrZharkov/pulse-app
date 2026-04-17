@@ -3,8 +3,12 @@ kind: ServiceMonitor
 metadata:
   name: pulse-app-monitor
   labels:
-    release: monitor # Этот лейбл важен, чтобы Prometheus его подхватил
+    release: monitor
 spec:
+  # Указываем Prometheus искать в неймспейсе pulse-prod
+  namespaceSelector:
+    matchNames:
+      - pulse-prod
   selector:
     matchLabels:
       app: pulse-app
