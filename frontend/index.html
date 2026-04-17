@@ -1,27 +1,136 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-    <meta charset="UTF-8"> <title>Pulse Calculator</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pulse Calculator | DevOps Project</title>
     <style>
-        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); height: 100vh; font-family: sans-serif; display: flex; justify-content: center; align-items: center; color: white; }
-        .card { background: rgba(255,255,255,0.1); padding: 2rem; border-radius: 15px; backdrop-filter: blur(10px); }
-        input { padding: 10px; margin: 10px 0; border-radius: 5px; border: none; }
-        button { padding: 10px 20px; background: #ff4757; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        :root {
+            --primary: #ff4757;
+            --glass: rgba(255, 255, 255, 0.15);
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+        .card {
+            background: var(--glass);
+            padding: 2.5rem;
+            border-radius: 20px;
+            backdrop-filter: blur(15px);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            width: 350px;
+            text-align: center;
+        }
+        h2 { margin-bottom: 1.5rem; font-weight: 300; }
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border: none;
+            background: rgba(255, 255, 255, 0.9);
+            box-sizing: border-box;
+            font-size: 1rem;
+        }
+        .btn-group { display: flex; gap: 10px; margin-top: 10px; }
+        button {
+            flex: 1;
+            padding: 12px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.2s, background 0.2s;
+        }
+        button:hover { background: #ff6b81; transform: translateY(-2px); }
+        button:active { transform: translateY(0); }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        #result {
+            margin-top: 20px;
+            font-size: 1.2rem;
+            min-height: 1.5em;
+            font-weight: 500;
+        }
+        .status { font-size: 0.8rem; margin-top: 10px; opacity: 0.8; }
     </style>
 </head>
 <body>
+
     <div class="card">
-        <h2>Рассчитать макс. пульс</h2>
-        <input type="number" id="age" placeholder="Введите возраст">
-        <button onclick="calc()">Рассчитать</button>
+        <h2>Пульсометр</h2>
+        <input type="number" id="age" placeholder="Ваш возраст (лет)" min="1" max="120">
+        
+        <div class="btn-group">
+            <button onclick="calculatePulse()">Рассчитать</button>
+            <button id="saveBtn" onclick="saveData()" style="background: #2ed573;" disabled>Сохранить</button>
+        </div>
+
         <p id="result"></p>
+        <div id="status" class="status"></div>
     </div>
+
     <script>
-        async function calc() {
+        const API_URL = "http://localhost:8000";
+        let lastResult = null;
+
+        async function calculatePulse() {
             const age = document.getElementById('age').value;
-            const res = await fetch(`http://localhost:8000/calculate?age=${age}`);
-            const data = await res.json();
-            document.getElementById('result').innerText = "Ваш макс. пульс: " + data.max_pulse;
+            const resDisplay = document.getElementById('result');
+            const statusDisplay = document.getElementById('status');
+            const saveBtn = document.getElementById('saveBtn');
+
+            if (!age) {
+                resDisplay.innerText = "Введите возраст!";
+                return;
+            }
+
+            statusDisplay.innerText = "Запрос к API...";
+
+            try {
+                const response = await fetch(`${API_URL}/calculate?age=${age}`);
+                if (!response.ok) throw new Error("Ошибка бэкенда");
+                
+                const data = await response.json();
+                lastResult = data.max_pulse;
+                resDisplay.innerText = `Ваш макс. пульс: ${data.max_pulse} уд/мин`;
+                statusDisplay.innerText = "Готово";
+                saveBtn.disabled = false;
+            } catch (err) {
+                console.error(err);
+                resDisplay.innerText = "❌ Ошибка связи с API";
+                statusDisplay.innerText = "Проверьте, запущен ли port-forward на 8000";
+            }
+        }
+
+        async function saveData() {
+            const age = document.getElementById('age').value;
+            const statusDisplay = document.getElementById('status');
+
+            try {
+                const response = await fetch(`${API_URL}/save`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ age: parseInt(age), max_pulse: lastResult })
+                });
+                
+                if (response.ok) {
+                    statusDisplay.innerText = "✅ Данные сохранены!";
+                    document.getElementById('saveBtn').disabled = true;
+                }
+            } catch (err) {
+                statusDisplay.innerText = "❌ Ошибка при сохранении";
+            }
         }
     </script>
 </body>

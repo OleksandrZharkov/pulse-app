@@ -1,8 +1,17 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import sqlite3
 
 app = FastAPI()
+
+# РАЗРЕШАЕМ CORS (чтобы фронтенд мог достучаться до API)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # В продакшене тут должен быть конкретный домен
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class UserData(BaseModel):
     age: int
@@ -10,11 +19,9 @@ class UserData(BaseModel):
 
 @app.get("/calculate")
 def calculate(age: int):
-    # Формула Хаскеля-Фокса
     max_p = 220 - age
     return {"max_pulse": max_p}
 
 @app.post("/save")
 def save(data: UserData):
-    # Упрощенное сохранение в SQLite для примера
     return {"status": "saved", "data": data}
