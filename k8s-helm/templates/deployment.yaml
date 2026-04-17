@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pulse-app
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: pulse-app
+  template:
+    metadata:
+      labels:
+        app: pulse-app
+    spec:
+      containers:
+      - name: backend
+        image: {{ .Values.backend.image }}
+        ports:
+        - containerPort: {{ .Values.backend.port }}
+      - name: frontend
+        image: {{ .Values.frontend.image }}
+        ports:
+        - containerPort: {{ .Values.frontend.port }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pulse-app-service
+spec:
+  type: ClusterIP
+  ports:
+  - name: frontend
+    port: 80
+    targetPort: 80
+  - name: backend
+    port: 8000
+    targetPort: 8000
+  selector:
+    app: pulse-app
