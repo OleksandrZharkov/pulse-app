@@ -1,14 +1,15 @@
 from fastapi import FastAPI
-from prometheus_fastapi_instrumentator import Instrumentator
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import psycopg2
 import os
 import time
+# Добавлен импорт для метрик
+from prometheus_fastapi_instrumentator import Instrumentator 
 
 app = FastAPI()
 
-# Инициализируем сборщик метрик
+# Инициализация сбора метрик (должна быть до маршрутов)
 Instrumentator().instrument(app).expose(app)
 
 # Настройка CORS
@@ -21,7 +22,6 @@ app.add_middleware(
 )
 
 def get_db_connection():
-    """Функция подключения к БД с механизмом retry"""
     attempts = 0
     while attempts < 10:
         try:
@@ -38,7 +38,7 @@ def get_db_connection():
             time.sleep(3)
     raise Exception("Не удалось подключиться к базе данных")
 
-# Инициализация таблицы при старте
+# Инициализация таблицы
 conn = get_db_connection()
 cur = conn.cursor()
 cur.execute("""
