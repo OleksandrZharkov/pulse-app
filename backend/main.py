@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from prometheus_fastapi_instrumentator import Instrumentator
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import psycopg2
@@ -6,6 +7,9 @@ import os
 import time
 
 app = FastAPI()
+
+# Инициализируем сборщик метрик
+Instrumentator().instrument(app).expose(app)
 
 # Настройка CORS
 app.add_middleware(

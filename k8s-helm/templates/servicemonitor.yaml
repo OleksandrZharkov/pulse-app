@@ -1,0 +1,13 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: pulse-app-monitor
+  labels:
+    release: monitor # Этот лейбл важен, чтобы Prometheus его подхватил
+spec:
+  selector:
+    matchLabels:
+      app: pulse-app
+  endpoints:
+  - port: http-backend
+    path: /metrics

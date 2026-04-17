@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: pulse-app-alerts
+  labels:
+    release: monitor
+spec:
+  groups:
+  - name: pulse-app.rules
+    rules:
+    - alert: PulseAppDown
+      expr: up{job="pulse-app-service"} == 0
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Приложение Pulse-App упало!"
+        description: "Сервис в неймспейсе pulse-prod не отвечает более 1 минуты."
