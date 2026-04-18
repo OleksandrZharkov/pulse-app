@@ -8,10 +8,9 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
-# Фиксируем версии библиотек, чтобы Trivy был доволен
+
 RUN pip install --no-cache-dir \
     fastapi==0.110.0 \
-    starlette==0.40.0 \
     uvicorn[standard]==0.29.0 \
     psycopg2-binary==2.9.9 \
     prometheus-fastapi-instrumentator==7.0.0 \
