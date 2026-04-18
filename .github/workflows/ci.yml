@@ -43,6 +43,7 @@ jobs:
           image-ref: ${{ secrets.DOCKER_USERNAME }}/pulse-backend:${{ github.sha }}
           severity: 'CRITICAL,HIGH'
           exit-code: '1'
+          scanners: 'vuln'
 
       # 4. Сборка и сканирование Frontend
       - name: Build and push Frontend
@@ -60,6 +61,7 @@ jobs:
           image-ref: ${{ secrets.DOCKER_USERNAME }}/pulse-frontend:${{ github.sha }}
           severity: 'CRITICAL,HIGH'
           exit-code: '1'
+          scanners: 'vuln'
 
       # 5. Проверка K8s манифестов
       - name: Scan Kubernetes manifests
