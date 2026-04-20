@@ -1,3 +1,4 @@
+# --- Этап сборки (Builder) ---
 FROM python:3.13-slim AS builder
 
 WORKDIR /app
@@ -10,29 +11,23 @@ RUN apt-get update && apt-get install -y \
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-RUN pip install --no-cache-dir \
-    "pip>=25.0" \
-    "wheel>=0.46.2" \
-    "setuptools>=78.0" \
-    "jaraco.context>=6.1.0" \
-    "fastapi>=0.115.4" \
-    "uvicorn[standard]>=0.30.0" \
-    "psycopg2-binary>=2.9.9" \
-    "prometheus-fastapi-instrumentator>=7.0.0"
+# Копируем только файл зависимостей сначала — это ускорит сборку (кеширование)
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
-# --- Финальный образ ---
+# --- Финальный образ (Final) ---
 FROM debian:bookworm-slim
 
 WORKDIR /app
 
-# Ставим Python из официального репо Debian — без лишних pip-пакетов в системе
+# Ставим только runtime-зависимости (никаких компиляторов)
 RUN apt-get update && apt-get install -y \
     python3 \
-    python3-venv \
     libpq5 \
     && rm -rf /var/lib/apt/lists/*
 
-# Берём только чистый venv — wheel и jaraco.context в системе вообще не существуют
+# Копируем чистый venv из билдера
 COPY --from=builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 

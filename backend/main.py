@@ -12,6 +12,11 @@ app = FastAPI()
 # Инициализация сбора метрик (должна быть до маршрутов)
 Instrumentator().instrument(app).expose(app)
 
+# Эндпоинт для проверки здоровья (Healthcheck)
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
+
 # Настройка CORS
 app.add_middleware(
     CORSMiddleware,
