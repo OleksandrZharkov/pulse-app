@@ -1,4 +1,4 @@
-FROM python:3.11-slim AS builder
+FROM python:3.13-slim AS builder
 
 WORKDIR /app
 
@@ -7,42 +7,32 @@ RUN apt-get update && apt-get install -y \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
-# Патчим уязвимые системные пакеты базового образа напрямую
-RUN pip install --no-cache-dir \
-    "wheel>=0.46.2" \
-    "jaraco.context>=6.1.0"
-
-# Создаём изолированный venv
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# В venv тоже ставим патченные версии первыми
 RUN pip install --no-cache-dir \
     "pip>=25.0" \
     "wheel>=0.46.2" \
     "setuptools>=78.0" \
-    "jaraco.context>=6.1.0"
-
-RUN pip install --no-cache-dir \
+    "jaraco.context>=6.1.0" \
     "fastapi>=0.115.4" \
     "uvicorn[standard]>=0.30.0" \
     "psycopg2-binary>=2.9.9" \
     "prometheus-fastapi-instrumentator>=7.0.0"
 
 # --- Финальный образ ---
-FROM python:3.11-slim
+FROM debian:bookworm-slim
 
 WORKDIR /app
 
+# Ставим Python из официального репо Debian — без лишних pip-пакетов в системе
 RUN apt-get update && apt-get install -y \
-    libpq-dev \
+    python3 \
+    python3-venv \
+    libpq5 \
     && rm -rf /var/lib/apt/lists/*
 
-# Патчим уязвимые системные пакеты и в финальном образе
-RUN pip install --no-cache-dir \
-    "wheel>=0.46.2" \
-    "jaraco.context>=6.1.0"
-
+# Берём только чистый venv — wheel и jaraco.context в системе вообще не существуют
 COPY --from=builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
