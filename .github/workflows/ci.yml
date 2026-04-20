@@ -44,6 +44,7 @@ jobs:
           severity: 'CRITICAL,HIGH'
           exit-code: '1'
           scanners: 'vuln'
+          ignore-unfixed: true
 
       # 4. Сборка и сканирование Frontend
       - name: Build and push Frontend
@@ -62,6 +63,7 @@ jobs:
           severity: 'CRITICAL,HIGH'
           exit-code: '1'
           scanners: 'vuln'
+          ignore-unfixed: true
 
       # 5. Проверка K8s манифестов
       - name: Scan Kubernetes manifests

@@ -9,7 +9,7 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 
-RUN pip install --no-cache-dir \
+RUN pip install --no-cache-dir -U \
     "fastapi>=0.115.4" \
     "uvicorn[standard]>=0.30.0" \
     "psycopg2-binary>=2.9.9" \
