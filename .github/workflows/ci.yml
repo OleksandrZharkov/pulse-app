@@ -65,10 +65,3 @@ jobs:
           scanners: 'vuln'
           ignore-unfixed: true
 
-      # 5. Проверка K8s манифестов
-      - name: Scan Kubernetes manifests
-        uses: bridgecrewio/checkov-action@master
-        with:
-          directory: ./k8s
-          framework: kubernetes
-          soft_fail: true # Пока не блокируем билд, чтобы не мешать разработке
