@@ -21,5 +21,5 @@ HEALTHCHECK --interval=30s --timeout=3s \
   CMD curl -f http://localhost:8000/health || exit 1
 
 EXPOSE 8000
-# Теперь uvicorn будет доступен в системном PATH
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+CMD ["/opt/venv/bin/python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
