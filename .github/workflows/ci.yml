@@ -38,13 +38,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # 2. Snyk: сканируем зависимости (нужен токен Snyk)
+      # 2. Snyk: устанавливаем CLI и сканируем зависимости
+      - name: Set up Snyk
+        uses: snyk/actions/setup@v4
+
       - name: Run Snyk to check for vulnerabilities
-        uses: snyk/actions/python@0.4.0
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          args: --file=backend/requirements.txt --package-manager=pip --allow-missing
+        run: snyk test --file=backend/requirements.txt --package-manager=pip --allow-missing
 
       # 3. Docker Buildx (Multi-stage билд уже делает образ безопасным)
       - name: Log in to Docker Hub
