@@ -6,11 +6,13 @@ on:
   pull_request:
     branches: [ main ]
 
+# Обязательно даем права на запись, чтобы Actions мог делать git push
+permissions:
+  contents: write
+
 jobs:
   security-and-build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write # НЕОБХОДИМО для того, чтобы Actions мог пушить изменения обратно в репозиторий
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -34,11 +36,13 @@ jobs:
           PYTHONPATH: backend
         run: pytest backend/tests -q
 
+      # 1. Gitleaks: сканируем на наличие секретов
       - name: Gitleaks Scan
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # 2. Snyk: сканируем зависимости
       - name: Set up Snyk
         uses: snyk/actions/setup@v1
 
@@ -47,6 +51,7 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: snyk test --file=backend/requirements.txt --package-manager=pip --allow-missing
 
+      # 3. Docker Build & Push
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -60,6 +65,7 @@ jobs:
           push: ${{ github.event_name == 'push' }}
           tags: ${{ secrets.DOCKER_USERNAME }}/pulse-backend:${{ github.sha }}
 
+      # 4. Trivy: финальный чек образа
       - name: Run Trivy scanner (Final Check)
         uses: aquasecurity/trivy-action@v0.9.2
         if: github.event_name == 'push'
@@ -69,17 +75,18 @@ jobs:
           exit-code: '1'
           ignore-unfixed: true
 
-      # --- ДОБАВЛЕННЫЙ ШАГ: GitOps Update ---
+      # 5. GitOps: автоматическое обновление values.yaml для ArgoCD
       - name: Update Helm values
         if: github.event_name == 'push'
         run: |
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
           
-          # Заменяем тег в вашем values.yaml
-          # ВАЖНО: убедитесь, что путь к values.yaml верный (например, charts/pulse-app/values.yaml)
-          sed -i "s|image: .*pulse-backend:.*|image: ${{ secrets.DOCKER_USERNAME }}/pulse-backend:${{ github.sha }}|g" values.yaml
+          VALUES_FILE="K8s-helm/values.yaml"
           
-          git add values.yaml
+          # Обновляем строку с образом, используя новый sha коммита
+          sed -i "s|image: .*pulse-backend:.*|image: ${{ secrets.DOCKER_USERNAME }}/pulse-backend:${{ github.sha }}|g" $VALUES_FILE
+          
+          git add $VALUES_FILE
           git commit -m "chore: update backend image to ${{ github.sha }}"
           git push
