@@ -44,7 +44,7 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          args: --file=backend/requirements.txt # Укажи путь к файлу зависимостей
+          args: --file=backend/requirements.txt --package-manager=pip --allow-missing
 
       # 3. Docker Buildx (Multi-stage билд уже делает образ безопасным)
       - name: Log in to Docker Hub
