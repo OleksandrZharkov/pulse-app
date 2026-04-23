@@ -46,7 +46,6 @@ jobs:
       - name: Run Snyk to check for vulnerabilities
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        # Some transitive Python deps can be unresolved in CI resolver context.
         run: snyk test --file=backend/requirements.txt --package-manager=pip --allow-missing
 
       - name: Log in to Docker Hub
@@ -62,6 +61,13 @@ jobs:
           push: ${{ github.event_name == 'push' }}
           tags: ${{ secrets.DOCKER_USERNAME }}/pulse-backend:${{ github.sha }}
 
+      - name: Build and push Frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: ${{ github.event_name == 'push' }}
+          tags: ${{ secrets.DOCKER_USERNAME }}/pulse-frontend:${{ github.sha }}
+
       - name: Run Trivy scanner
         uses: aquasecurity/trivy-action@v0.9.2
         if: github.event_name == 'push'
@@ -74,14 +80,14 @@ jobs:
       - name: Update Helm values
         if: github.event_name == 'push'
         run: |
-          # Commit bot-only image tag updates for GitOps-style rollout.
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
           
           VALUES_FILE="k8s-helm/values.yaml"
           
           sed -i "s|image: ozharkov/pulse-backend.*|image: ozharkov/pulse-backend:${{ github.sha }}|g" $VALUES_FILE
+          sed -i "s|image: ozharkov/pulse-frontend.*|image: ozharkov/pulse-frontend:${{ github.sha }}|g" $VALUES_FILE
           
           git add $VALUES_FILE
-          git commit -m "chore: update backend image to ${{ github.sha }}"
+          git commit -m "chore: update images to ${{ github.sha }}"
           git push
