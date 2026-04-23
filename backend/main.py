@@ -5,26 +5,23 @@ import psycopg2
 import os
 import time
 from contextlib import asynccontextmanager
-# Добавлен импорт для метрик
 from prometheus_fastapi_instrumentator import Instrumentator 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    # Keep startup deterministic in CI by allowing tests to skip DB bootstrap.
     if not should_skip_db_init():
         init_db()
     yield
 
 app = FastAPI(lifespan=lifespan)
 
-# Инициализация сбора метрик (должна быть до маршрутов)
 Instrumentator().instrument(app).expose(app)
 
-# Эндпоинт для проверки здоровья (Healthcheck)
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
 
-# Настройка CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -49,9 +46,10 @@ def get_db_connection():
             return conn
         except Exception as e:
             attempts += 1
-            print(f"Попытка {attempts}: Ожидание БД... {e}")
+            # Retry helps when app starts before PostgreSQL is ready.
+            print(f"Attempt {attempts}: waiting for database... {e}")
             time.sleep(3)
-    raise Exception("Не удалось подключиться к базе данных")
+    raise Exception("Failed to connect to the database")
 
 def init_db():
     conn = get_db_connection()

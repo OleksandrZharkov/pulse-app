@@ -14,5 +14,5 @@ spec:
       labels:
         severity: critical
       annotations:
-        summary: "Приложение Pulse-App упало!"
-        description: "Сервис в неймспейсе pulse-prod не отвечает более 1 минуты."
+        summary: "Pulse App is down"
+        description: "The service in namespace pulse-prod has not responded for over 1 minute."

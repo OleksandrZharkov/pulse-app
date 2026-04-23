@@ -3,7 +3,7 @@ kind: ServiceMonitor
 metadata:
   name: pulse-app-monitor
   labels:
-    release: monitor # Должно совпадать с именем вашего helm-релиза мониторинга
+    release: monitor
 spec:
   namespaceSelector:
     matchNames:

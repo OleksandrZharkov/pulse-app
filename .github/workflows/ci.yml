@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 permissions:
-  contents: write # Необходимые права для git push
+  contents: write
 
 jobs:
   security-and-build:
@@ -35,22 +35,20 @@ jobs:
           PYTHONPATH: backend
         run: pytest backend/tests -q
 
-      # 1. Gitleaks
       - name: Gitleaks Scan
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # 2. Snyk
       - name: Set up Snyk
         uses: snyk/actions/setup@v1
 
       - name: Run Snyk to check for vulnerabilities
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        # Some transitive Python deps can be unresolved in CI resolver context.
         run: snyk test --file=backend/requirements.txt --package-manager=pip --allow-missing
 
-      # 3. Docker Build & Push
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -64,7 +62,6 @@ jobs:
           push: ${{ github.event_name == 'push' }}
           tags: ${{ secrets.DOCKER_USERNAME }}/pulse-backend:${{ github.sha }}
 
-      # 4. Trivy
       - name: Run Trivy scanner
         uses: aquasecurity/trivy-action@v0.9.2
         if: github.event_name == 'push'
@@ -74,16 +71,15 @@ jobs:
           exit-code: '1'
           ignore-unfixed: true
 
-      # 5. GitOps: автоматическое обновление тега образа в Helm values
       - name: Update Helm values
         if: github.event_name == 'push'
         run: |
+          # Commit bot-only image tag updates for GitOps-style rollout.
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
           
           VALUES_FILE="k8s-helm/values.yaml"
           
-          # Заменяем строку изображения на версию с тегом
           sed -i "s|image: ozharkov/pulse-backend.*|image: ozharkov/pulse-backend:${{ github.sha }}|g" $VALUES_FILE
           
           git add $VALUES_FILE

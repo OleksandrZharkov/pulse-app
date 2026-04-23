@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -68,12 +68,12 @@
 <body>
 
     <div class="card">
-        <h2>Пульсометр</h2>
-        <input type="number" id="age" placeholder="Ваш возраст (лет)" min="1" max="120">
+        <h2>Pulse Calculator</h2>
+        <input type="number" id="age" placeholder="Your age (years)" min="1" max="120">
         
         <div class="btn-group">
-            <button onclick="calculatePulse()">Рассчитать</button>
-            <button id="saveBtn" onclick="saveData()" style="background: #2ed573;" disabled>Сохранить</button>
+            <button onclick="calculatePulse()">Calculate</button>
+            <button id="saveBtn" onclick="saveData()" style="background: #2ed573;" disabled>Save</button>
         </div>
 
         <p id="result"></p>
@@ -91,25 +91,25 @@
             const saveBtn = document.getElementById('saveBtn');
 
             if (!age) {
-                resDisplay.innerText = "Введите возраст!";
+                resDisplay.innerText = "Please enter your age.";
                 return;
             }
 
-            statusDisplay.innerText = "Запрос к API...";
+            statusDisplay.innerText = "Requesting API...";
 
             try {
                 const response = await fetch(`${API_URL}/calculate?age=${age}`);
-                if (!response.ok) throw new Error("Ошибка бэкенда");
+                if (!response.ok) throw new Error("Backend error");
                 
                 const data = await response.json();
                 lastResult = data.max_pulse;
-                resDisplay.innerText = `Ваш макс. пульс: ${data.max_pulse} уд/мин`;
-                statusDisplay.innerText = "Готово";
+                resDisplay.innerText = `Your max pulse: ${data.max_pulse} bpm`;
+                statusDisplay.innerText = "Done";
                 saveBtn.disabled = false;
             } catch (err) {
                 console.error(err);
-                resDisplay.innerText = "❌ Ошибка связи с API";
-                statusDisplay.innerText = "Проверьте, запущен ли port-forward на 8000";
+                resDisplay.innerText = "❌ API connection error";
+                statusDisplay.innerText = "Check whether port-forward is running on 8000";
             }
         }
 
@@ -125,11 +125,11 @@
                 });
                 
                 if (response.ok) {
-                    statusDisplay.innerText = "✅ Данные сохранены!";
+                    statusDisplay.innerText = "✅ Data saved";
                     document.getElementById('saveBtn').disabled = true;
                 }
             } catch (err) {
-                statusDisplay.innerText = "❌ Ошибка при сохранении";
+                statusDisplay.innerText = "❌ Save failed";
             }
         }
     </script>

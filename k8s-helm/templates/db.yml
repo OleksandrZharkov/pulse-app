@@ -40,6 +40,7 @@ spec:
               value: {{ .Values.database.user }}
             - name: POSTGRES_PASSWORD
               valueFrom:
+                # Keep app and DB password source aligned through one shared secret.
                 secretKeyRef:
                   name: {{ .Values.database.existingSecretName }}
                   key: {{ .Values.database.passwordKey }}
