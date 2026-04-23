@@ -4,10 +4,17 @@ from pydantic import BaseModel
 import psycopg2
 import os
 import time
+from contextlib import asynccontextmanager
 # Добавлен импорт для метрик
 from prometheus_fastapi_instrumentator import Instrumentator 
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    if not should_skip_db_init():
+        init_db()
+    yield
+
+app = FastAPI(lifespan=lifespan)
 
 # Инициализация сбора метрик (должна быть до маршрутов)
 Instrumentator().instrument(app).expose(app)
@@ -26,6 +33,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+def should_skip_db_init() -> bool:
+    return os.getenv("SKIP_DB_INIT", "false").lower() == "true"
+
 def get_db_connection():
     attempts = 0
     while attempts < 10:
@@ -43,20 +53,20 @@ def get_db_connection():
             time.sleep(3)
     raise Exception("Не удалось подключиться к базе данных")
 
-# Инициализация таблицы
-conn = get_db_connection()
-cur = conn.cursor()
-cur.execute("""
-    CREATE TABLE IF NOT EXISTS pulse_history (
-        id SERIAL PRIMARY KEY, 
-        age INT, 
-        max_pulse FLOAT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-""")
-conn.commit()
-cur.close()
-conn.close()
+def init_db():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS pulse_history (
+            id SERIAL PRIMARY KEY,
+            age INT,
+            max_pulse FLOAT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+    conn.commit()
+    cur.close()
+    conn.close()
 
 class UserData(BaseModel):
     age: int

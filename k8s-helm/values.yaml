@@ -10,6 +10,7 @@ frontend:
 
 database:
   user: "admin"
-  password: "password123"
+  existingSecretName: "pulse-db-secret"
+  passwordKey: "password"
   name: "pulsedb"
   storageSize: 1Gi

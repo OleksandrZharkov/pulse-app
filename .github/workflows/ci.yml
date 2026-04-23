@@ -15,6 +15,23 @@ jobs:
         with:
           fetch-depth: 0 # Нужно для корректной работы Gitleaks (анализ истории)
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install backend dependencies
+        run: pip install -r backend/requirements.txt pytest httpx ruff
+
+      - name: Lint backend
+        run: ruff check backend
+
+      - name: Run backend smoke tests
+        env:
+          SKIP_DB_INIT: "true"
+          PYTHONPATH: backend
+        run: pytest backend/tests -q
+
       # 1. Gitleaks: сканируем на наличие секретов
       - name: Gitleaks Scan
         uses: gitleaks/gitleaks-action@v2
@@ -23,8 +40,7 @@ jobs:
 
       # 2. Snyk: сканируем зависимости (нужен токен Snyk)
       - name: Run Snyk to check for vulnerabilities
-        uses: snyk/actions/python@master
-        continue-on-error: true # Сначала смотрим отчет, потом блокируем
+        uses: snyk/actions/python@0.4.0
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
@@ -41,12 +57,13 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./backend
-          push: true
+          push: ${{ github.event_name == 'push' }}
           tags: ${{ secrets.DOCKER_USERNAME }}/pulse-backend:${{ github.sha }}
 
       # 4. Trivy: финальный чек образа
       - name: Run Trivy scanner (Final Check)
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.28.0
+        if: github.event_name == 'push'
         with:
           image-ref: ${{ secrets.DOCKER_USERNAME }}/pulse-backend:${{ github.sha }}
           severity: 'CRITICAL,HIGH'

@@ -22,7 +22,10 @@ spec:
           - name: DB_USER
             value: {{ .Values.database.user }}
           - name: DB_PASSWORD
-            value: {{ .Values.database.password }}
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Values.database.existingSecretName }}
+                key: {{ .Values.database.passwordKey }}
           - name: DB_NAME
             value: {{ .Values.database.name }}
         ports:

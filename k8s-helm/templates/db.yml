@@ -39,7 +39,10 @@ spec:
             - name: POSTGRES_USER
               value: {{ .Values.database.user }}
             - name: POSTGRES_PASSWORD
-              value: {{ .Values.database.password }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.existingSecretName }}
+                  key: {{ .Values.database.passwordKey }}
             - name: POSTGRES_DB
               value: {{ .Values.database.name }}
           ports:
