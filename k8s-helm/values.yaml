@@ -14,3 +14,10 @@ database:
   passwordKey: "password"
   name: "pulsedb"
   storageSize: 1Gi
+
+prometheus:
+  enabled: true
+  image: prom/prometheus:v2.53.1
+  port: 9090
+  retention: 7d
+  storageSize: 2Gi
