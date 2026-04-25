@@ -75,11 +75,11 @@ metadata:
 data:
   config.yaml: |
     rules:
-      - seriesQuery: 'http_requests_total{namespace!="",pod!=""}'
+      - seriesQuery: 'http_requests_total{namespace!="",service!=""}'
         resources:
           overrides:
             namespace: {resource: "namespace"}
-            pod: {resource: "pod"}
+            service: {resource: "service"}
         name:
           matches: "^(.*)_total$"
           as: "${1}_per_second"

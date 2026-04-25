@@ -27,12 +27,16 @@ spec:
           type: Utilization
           averageUtilization: {{ .Values.autoscaling.targetMemoryUtilizationPercentage }}
 {{- else }}
-    - type: Pods
-      pods:
+    - type: Object
+      object:
+        describedObject:
+          apiVersion: v1
+          kind: Service
+          name: pulse-app-service
         metric:
           name: http_requests_per_second
         target:
-          type: AverageValue
-          averageValue: {{ .Values.autoscaling.targetRequestsPerSecondPerPod | quote }}
+          type: Value
+          value: {{ .Values.autoscaling.targetRequestsPerSecondPerPod | quote }}
 {{- end }}
 {{- end }}
