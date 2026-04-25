@@ -1,7 +1,7 @@
 replicaCount: 1
 
 backend:
-  image: ozharkov/pulse-backend:928f4f4bf5b761ab0ec03732a5cb32211b08a580
+  image: ozharkov/pulse-backend:f28252c5c775d05524a00b196e7f718fa110b9bc
   port: 8000
   resources:
     requests:
@@ -12,7 +12,7 @@ backend:
       memory: 512Mi
 
 frontend:
-  image: ozharkov/pulse-frontend:928f4f4bf5b761ab0ec03732a5cb32211b08a580
+  image: ozharkov/pulse-frontend:f28252c5c775d05524a00b196e7f718fa110b9bc
   port: 80
   resources:
     requests:
