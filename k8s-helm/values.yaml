@@ -3,10 +3,24 @@ replicaCount: 1
 backend:
   image: ozharkov/pulse-backend:e5a7a142975cae0c9f2c49eda8d37243583a7599
   port: 8000
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
 
 frontend:
   image: ozharkov/pulse-frontend:e5a7a142975cae0c9f2c49eda8d37243583a7599
   port: 80
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
 
 database:
   user: "admin"
@@ -35,3 +49,17 @@ nodeExporter:
   enabled: true
   image: quay.io/prometheus/node-exporter:v1.8.2
   port: 9100
+
+autoscaling:
+  enabled: true
+  mode: custom
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+  targetRequestsPerSecondPerPod: "5"
+
+prometheusAdapter:
+  enabled: true
+  image: registry.k8s.io/prometheus-adapter/prometheus-adapter:v0.12.0
+  port: 6443

@@ -1,0 +1,155 @@
+{{- if .Values.prometheusAdapter.enabled }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prometheus-adapter
+  labels:
+    app: prometheus-adapter
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: prometheus-adapter
+  labels:
+    app: prometheus-adapter
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "nodes", "namespaces", "services"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["custom.metrics.k8s.io"]
+    resources: ["*"]
+    verbs: ["*"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: prometheus-adapter
+  labels:
+    app: prometheus-adapter
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: prometheus-adapter
+subjects:
+  - kind: ServiceAccount
+    name: prometheus-adapter
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: prometheus-adapter-auth-delegator
+  labels:
+    app: prometheus-adapter
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:auth-delegator
+subjects:
+  - kind: ServiceAccount
+    name: prometheus-adapter
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: prometheus-adapter-auth-reader
+  namespace: kube-system
+  labels:
+    app: prometheus-adapter
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: extension-apiserver-authentication-reader
+subjects:
+  - kind: ServiceAccount
+    name: prometheus-adapter
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-adapter-config
+  labels:
+    app: prometheus-adapter
+data:
+  config.yaml: |
+    rules:
+      default: false
+      custom:
+        - seriesQuery: 'http_requests_total{namespace!="",pod!=""}'
+          resources:
+            overrides:
+              namespace: {resource: "namespace"}
+              pod: {resource: "pod"}
+          name:
+            matches: "^(.*)_total$"
+            as: "${1}_per_second"
+          metricsQuery: 'sum(rate(<<.Series>>{<<.LabelMatchers>>}[2m])) by (<<.GroupBy>>)'
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus-adapter
+  labels:
+    app: prometheus-adapter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus-adapter
+  template:
+    metadata:
+      labels:
+        app: prometheus-adapter
+    spec:
+      serviceAccountName: prometheus-adapter
+      containers:
+        - name: prometheus-adapter
+          image: {{ .Values.prometheusAdapter.image }}
+          args:
+            - /adapter
+            - --secure-port={{ .Values.prometheusAdapter.port }}
+            - --prometheus-url=http://prometheus-service:{{ .Values.prometheus.port }}
+            - --config=/etc/adapter/config.yaml
+          ports:
+            - name: https
+              containerPort: {{ .Values.prometheusAdapter.port }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/adapter
+      volumes:
+        - name: config
+          configMap:
+            name: prometheus-adapter-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus-adapter
+  labels:
+    app: prometheus-adapter
+spec:
+  selector:
+    app: prometheus-adapter
+  ports:
+    - name: https
+      port: 443
+      targetPort: https
+---
+apiVersion: apiregistration.k8s.io/v1
+kind: APIService
+metadata:
+  name: v1beta1.custom.metrics.k8s.io
+  labels:
+    app: prometheus-adapter
+spec:
+  service:
+    name: prometheus-adapter
+    namespace: {{ .Release.Namespace }}
+  group: custom.metrics.k8s.io
+  version: v1beta1
+  groupPriorityMinimum: 100
+  versionPriority: 100
+  insecureSkipTLSVerify: true
+{{- end }}

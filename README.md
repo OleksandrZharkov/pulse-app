@@ -54,6 +54,10 @@ kubectl create secret generic grafana-admin-secret \
 
 Then deploy chart from `k8s-helm`.
 
+HPA modes:
+- `autoscaling.mode: custom` (default): scales by RPS via Prometheus Adapter (installed by chart).
+- `autoscaling.mode: resource`: scales by CPU/Memory, requires `metrics-server` in cluster.
+
 ## CI
 
 Pipeline in `.github/workflows/ci.yml` includes:
