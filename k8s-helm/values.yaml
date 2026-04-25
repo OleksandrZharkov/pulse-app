@@ -21,3 +21,17 @@ prometheus:
   port: 9090
   retention: 7d
   storageSize: 2Gi
+
+grafana:
+  enabled: true
+  image: grafana/grafana:11.1.0
+  port: 3000
+  storageSize: 2Gi
+  adminUser: admin
+  existingSecretName: grafana-admin-secret
+  adminPasswordKey: password
+
+nodeExporter:
+  enabled: true
+  image: quay.io/prometheus/node-exporter:v1.8.2
+  port: 9100

@@ -45,6 +45,13 @@ kubectl create secret generic pulse-db-secret \
   --from-literal=password='<your-db-password>'
 ```
 
+Create Grafana admin password secret:
+
+```bash
+kubectl create secret generic grafana-admin-secret \
+  --from-literal=password='<your-grafana-admin-password>'
+```
+
 Then deploy chart from `k8s-helm`.
 
 ## CI

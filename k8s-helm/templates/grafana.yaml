@@ -1,0 +1,243 @@
+{{- if .Values.grafana.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-provisioning
+  labels:
+    app: grafana
+data:
+  datasources.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        access: proxy
+        url: http://prometheus-service:{{ .Values.prometheus.port }}
+        isDefault: true
+        editable: false
+  dashboards.yaml: |
+    apiVersion: 1
+    providers:
+      - name: pulse-dashboards
+        orgId: 1
+        folder: Pulse
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-app
+  labels:
+    app: grafana
+data:
+  app-dashboard.json: |
+    {
+      "id": null,
+      "uid": "pulse-app-overview",
+      "title": "Pulse App Overview",
+      "schemaVersion": 39,
+      "version": 1,
+      "refresh": "10s",
+      "tags": ["pulse-app"],
+      "time": {"from": "now-15m", "to": "now"},
+      "templating": {"list": []},
+      "panels": [
+        {
+          "type": "timeseries",
+          "title": "Requests per second",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+          "targets": [
+            {
+              "expr": "sum(rate(http_requests_total[1m]))",
+              "legendFormat": "RPS",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "5xx errors per second",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+          "targets": [
+            {
+              "expr": "sum(rate(http_requests_total{status=~\"5..\"}[1m]))",
+              "legendFormat": "5xx",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "P95 request duration (s)",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket[5m])))",
+              "legendFormat": "p95",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "In-flight requests",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+          "targets": [
+            {
+              "expr": "sum(http_requests_in_progress)",
+              "legendFormat": "in-flight",
+              "refId": "A"
+            }
+          ]
+        }
+      ]
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-cluster
+  labels:
+    app: grafana
+data:
+  cluster-dashboard.json: |
+    {
+      "id": null,
+      "uid": "cluster-overview",
+      "title": "Kubernetes Cluster Overview",
+      "schemaVersion": 39,
+      "version": 1,
+      "refresh": "15s",
+      "tags": ["kubernetes", "cluster"],
+      "time": {"from": "now-30m", "to": "now"},
+      "templating": {"list": []},
+      "panels": [
+        {
+          "type": "timeseries",
+          "title": "Node CPU usage (%)",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+          "targets": [
+            {
+              "expr": "100 * (1 - avg(rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) by (instance))",
+              "legendFormat": "{{`{{instance}}`}}",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "Node memory usage (%)",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+          "targets": [
+            {
+              "expr": "100 * (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes))",
+              "legendFormat": "{{`{{instance}}`}}",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "Pod restarts",
+          "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8},
+          "targets": [
+            {
+              "expr": "sum by (namespace, pod) (kube_pod_container_status_restarts_total)",
+              "legendFormat": "{{`{{namespace}}/{{pod}}`}}",
+              "refId": "A"
+            }
+          ]
+        }
+      ]
+    }
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grafana-data
+  labels:
+    app: grafana
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.grafana.storageSize }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  labels:
+    app: grafana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+        - name: grafana
+          image: {{ .Values.grafana.image }}
+          ports:
+            - containerPort: {{ .Values.grafana.port }}
+              name: http
+          env:
+            - name: GF_SECURITY_ADMIN_USER
+              value: {{ .Values.grafana.adminUser | quote }}
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.grafana.existingSecretName }}
+                  key: {{ .Values.grafana.adminPasswordKey }}
+          volumeMounts:
+            - name: provisioning
+              mountPath: /etc/grafana/provisioning/datasources/datasources.yaml
+              subPath: datasources.yaml
+            - name: provisioning
+              mountPath: /etc/grafana/provisioning/dashboards/dashboards.yaml
+              subPath: dashboards.yaml
+            - name: dashboards-app
+              mountPath: /var/lib/grafana/dashboards/app-dashboard.json
+              subPath: app-dashboard.json
+            - name: dashboards-cluster
+              mountPath: /var/lib/grafana/dashboards/cluster-dashboard.json
+              subPath: cluster-dashboard.json
+            - name: data
+              mountPath: /var/lib/grafana
+      volumes:
+        - name: provisioning
+          configMap:
+            name: grafana-provisioning
+        - name: dashboards-app
+          configMap:
+            name: grafana-dashboard-app
+        - name: dashboards-cluster
+          configMap:
+            name: grafana-dashboard-cluster
+        - name: data
+          persistentVolumeClaim:
+            claimName: grafana-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana-service
+  labels:
+    app: grafana
+spec:
+  selector:
+    app: grafana
+  ports:
+    - name: http
+      port: {{ .Values.grafana.port }}
+      targetPort: {{ .Values.grafana.port }}
+{{- end }}
