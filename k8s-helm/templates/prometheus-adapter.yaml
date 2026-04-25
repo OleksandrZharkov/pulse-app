@@ -108,6 +108,7 @@ spec:
           args:
             - /adapter
             - --secure-port={{ .Values.prometheusAdapter.port }}
+            - --cert-dir=/tmp
             - --prometheus-url=http://prometheus-service:{{ .Values.prometheus.port }}
             - --config=/etc/adapter/config.yaml
           ports:
@@ -116,10 +117,14 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /etc/adapter
+            - name: tmp
+              mountPath: /tmp
       volumes:
         - name: config
           configMap:
             name: prometheus-adapter-config
+        - name: tmp
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
