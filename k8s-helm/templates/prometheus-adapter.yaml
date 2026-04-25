@@ -75,17 +75,15 @@ metadata:
 data:
   config.yaml: |
     rules:
-      default: false
-      custom:
-        - seriesQuery: 'http_requests_total{namespace!="",pod!=""}'
-          resources:
-            overrides:
-              namespace: {resource: "namespace"}
-              pod: {resource: "pod"}
-          name:
-            matches: "^(.*)_total$"
-            as: "${1}_per_second"
-          metricsQuery: 'sum(rate(<<.Series>>{<<.LabelMatchers>>}[2m])) by (<<.GroupBy>>)'
+      - seriesQuery: 'http_requests_total{namespace!="",pod!=""}'
+        resources:
+          overrides:
+            namespace: {resource: "namespace"}
+            pod: {resource: "pod"}
+        name:
+          matches: "^(.*)_total$"
+          as: "${1}_per_second"
+        metricsQuery: 'sum(rate(<<.Series>>{<<.LabelMatchers>>}[2m])) by (<<.GroupBy>>)'
 ---
 apiVersion: apps/v1
 kind: Deployment
