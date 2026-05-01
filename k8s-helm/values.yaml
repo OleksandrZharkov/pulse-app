@@ -66,6 +66,6 @@ prometheusAdapter:
 
 kafka:
   enabled: true
-  image: bitnami/kafka:3.6.1
+  image: bitnami/kafka:latest
   port: 9092
   storageSize: 2Gi
